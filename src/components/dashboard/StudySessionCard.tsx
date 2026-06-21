@@ -128,7 +128,7 @@ export function StudySessionCard({
             <>
               <button
                 onClick={handleDelete}
-                className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-7 h-7 rounded-[6px] text-foreground-muted hover:text-foreground hover:bg-muted transition-all duration-150"
+                className="opacity-50 md:opacity-0 md:group-hover:opacity-100 flex items-center justify-center w-7 h-7 rounded-[6px] text-foreground-muted hover:text-foreground hover:bg-muted transition-all duration-150"
                 aria-label="Eliminar sesión"
               >
                 <Trash2 size={13} strokeWidth={1.5} />

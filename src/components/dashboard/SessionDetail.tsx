@@ -153,8 +153,9 @@ export function SessionDetail({ session }: SessionDetailProps) {
     <PageShell className="max-w-none">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="min-w-0">
+        {/* Row 1: title + delete button */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               {session.subject && (
                 <Badge variant="muted">{session.subject}</Badge>
@@ -184,7 +185,7 @@ export function SessionDetail({ session }: SessionDetailProps) {
                 {session.source === "pdf" && (
                   <button
                     onClick={startEditTitle}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 p-1 rounded-[6px] text-foreground-muted hover:text-foreground hover:bg-muted"
+                    className="opacity-40 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150 p-1 rounded-[6px] text-foreground-muted hover:text-foreground hover:bg-muted"
                     aria-label="Editar nombre"
                   >
                     <Pencil size={14} strokeWidth={1.5} />
@@ -198,28 +199,17 @@ export function SessionDetail({ session }: SessionDetailProps) {
               </p>
             )}
           </div>
-          <div className="flex-shrink-0 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-medium text-foreground font-sans">
-                {sessionProgress}%
-              </span>
-              <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-foreground transition-all duration-500"
-                  style={{ width: `${sessionProgress}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Delete */}
+          {/* Delete button — always on top-right */}
+          <div className="flex-shrink-0 pt-1">
             {confirmDelete ? (
               <div className="flex items-center gap-1.5 animate-pop-in">
-                <span className="text-[12px] text-foreground-muted font-sans">¿Eliminar?</span>
+                <span className="text-[12px] text-foreground-muted font-sans hidden sm:inline">¿Eliminar?</span>
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
                   className="flex items-center justify-center w-7 h-7 rounded-[6px] bg-foreground text-background hover:opacity-80 transition-opacity duration-150 disabled:opacity-50"
-                  aria-label="Confirmar"
+                  aria-label="Confirmar eliminación"
                 >
                   {deleting ? (
                     <Loader2 size={12} strokeWidth={2} className="animate-spin" />
@@ -244,6 +234,19 @@ export function SessionDetail({ session }: SessionDetailProps) {
                 <Trash2 size={14} strokeWidth={1.5} />
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Row 2: progress bar — full width */}
+        <div className="flex items-center gap-2.5">
+          <span className="text-[12px] font-medium text-foreground font-sans flex-shrink-0">
+            {sessionProgress}%
+          </span>
+          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-foreground transition-all duration-500"
+              style={{ width: `${sessionProgress}%` }}
+            />
           </div>
         </div>
 

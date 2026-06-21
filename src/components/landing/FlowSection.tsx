@@ -8,20 +8,20 @@ const steps = [
 
 export function FlowSection() {
   return (
-    <section className="px-6 py-20 border-t border-border">
+    <section className="px-4 sm:px-6 py-16 md:py-20 border-t border-border">
       <div className="max-w-6xl mx-auto">
         <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-foreground-muted mb-4 font-sans">
           Flujo de estudio
         </p>
-        <h2 className="font-serif text-3xl md:text-4xl font-medium text-foreground mb-14 max-w-lg leading-tight">
+        <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-medium text-foreground mb-10 md:mb-14 max-w-lg leading-tight">
           De apuntes desordenados a una sesión lista para estudiar.
         </h2>
 
-        {/* Flow */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Flow — vertical on mobile, horizontal on md+ */}
+        <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-2 md:gap-3">
           {steps.map((step, i) => (
-            <div key={step.label} className="flex items-center gap-3">
-              <div className="flex flex-col items-center bg-card border border-border rounded-[12px] px-5 py-4 min-w-[110px] text-center hover:border-foreground-muted transition-colors duration-150">
+            <div key={step.label} className="flex flex-col md:flex-row md:items-center md:gap-3">
+              <div className="flex flex-col items-start md:items-center bg-card border border-border rounded-[12px] px-5 py-4 w-full md:w-auto md:min-w-[110px] text-left md:text-center hover:border-foreground-muted transition-colors duration-150">
                 <span className="text-[14px] font-serif font-medium text-foreground">
                   {step.label}
                 </span>
@@ -30,11 +30,13 @@ export function FlowSection() {
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <ArrowRight
-                  size={16}
-                  className="text-foreground-muted flex-shrink-0"
-                  strokeWidth={1.5}
-                />
+                <div className="flex justify-start md:justify-center py-1 md:py-0 pl-5 md:pl-0">
+                  <ArrowRight
+                    size={14}
+                    className="text-foreground-muted flex-shrink-0 rotate-90 md:rotate-0"
+                    strokeWidth={1.5}
+                  />
+                </div>
               )}
             </div>
           ))}

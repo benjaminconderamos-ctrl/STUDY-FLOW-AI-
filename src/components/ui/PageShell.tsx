@@ -11,7 +11,7 @@ export function PageShell({ children, className }: PageShellProps) {
     <main
       className={cn(
         "flex-1 min-h-0 overflow-y-auto",
-        "px-6 py-8 md:px-8 lg:px-10",
+        "px-4 py-6 sm:px-6 sm:py-8 md:px-8 lg:px-10",
         className
       )}
     >

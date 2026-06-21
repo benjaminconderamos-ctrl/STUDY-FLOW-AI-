@@ -91,9 +91,11 @@ export function MathSolverResult({ result, problem }: MathSolverResultProps) {
                     {step.title}
                   </p>
                   {step.expression && (
-                    <p className="font-mono text-[13px] bg-muted text-foreground px-3 py-1.5 rounded-[8px] mb-1.5 inline-block">
-                      {step.expression}
-                    </p>
+                    <div className="overflow-x-auto mb-1.5">
+                      <p className="font-mono text-[13px] bg-muted text-foreground px-3 py-1.5 rounded-[8px] inline-block whitespace-nowrap">
+                        {step.expression}
+                      </p>
+                    </div>
                   )}
                   <p className="text-[13px] font-sans text-foreground-muted leading-relaxed">
                     {step.explanation}

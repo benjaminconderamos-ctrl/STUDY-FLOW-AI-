@@ -66,7 +66,7 @@ const plans = [
 
 export function PricingSection() {
   return (
-    <section id="precios" className="px-6 py-20 border-t border-border">
+    <section id="precios" className="px-4 sm:px-6 py-16 md:py-20 border-t border-border">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
@@ -84,7 +84,7 @@ export function PricingSection() {
         </div>
 
         {/* Launch banner */}
-        <div className="mb-8 inline-flex items-center gap-2.5 px-4 py-2.5 rounded-[12px] border border-border bg-muted/60">
+        <div className="mb-8 flex items-start gap-2.5 px-4 py-2.5 rounded-[12px] border border-border bg-muted/60 max-w-full">
           <span
             className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"
             aria-hidden="true"

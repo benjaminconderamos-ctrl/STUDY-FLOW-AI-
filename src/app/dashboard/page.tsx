@@ -108,7 +108,7 @@ export default async function DashboardPage() {
         </p>
         <Link
           href="/dashboard/tools/math-solver"
-          className="bg-card border border-border rounded-[14px] p-5 flex items-start justify-between gap-6
+          className="bg-card border border-border rounded-[14px] p-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between
                      hover:border-foreground/20 transition-colors duration-200 group block"
         >
           <div className="flex items-start gap-4 min-w-0">
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
               <Brain size={16} className="text-foreground-muted" strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <p className="text-[15px] font-serif font-medium text-foreground">
                   Resolvedor de matemáticas
                 </p>
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           </div>
-          <Button size="sm" variant="outline" tabIndex={-1} className="flex-shrink-0 mt-0.5">
+          <Button size="sm" variant="outline" tabIndex={-1} className="flex-shrink-0 self-start sm:mt-0.5">
             Abrir
           </Button>
         </Link>

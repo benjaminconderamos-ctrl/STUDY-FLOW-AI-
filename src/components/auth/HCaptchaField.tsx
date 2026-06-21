@@ -26,7 +26,7 @@ const HCaptchaField = forwardRef<HCaptcha, HCaptchaFieldProps>(
     }
 
     return (
-      <div className="flex justify-start">
+      <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <HCaptcha
           ref={ref}
           sitekey={siteKey}

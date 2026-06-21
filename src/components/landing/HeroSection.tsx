@@ -48,19 +48,19 @@ const featureCards = [
 
 export function HeroSection() {
   return (
-    <section className="px-6 pt-20 pb-24 md:pt-28 md:pb-32">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_1fr] gap-16 items-start">
+    <section className="px-4 sm:px-6 pt-16 pb-20 md:pt-28 md:pb-32">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_1fr] gap-10 md:gap-16 items-start">
         {/* Left: copy */}
         <div className="animate-fade-in">
           <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-foreground-muted mb-6 font-sans">
             Espacio de estudio con IA
           </p>
-          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-medium text-foreground leading-[1.05] tracking-tight mb-6">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-7xl font-medium text-foreground leading-[1.05] tracking-tight mb-6">
             Estudia mejor.
             <br />
             <em className="not-italic opacity-60">Comprende mejor.</em>
           </h1>
-          <p className="text-[16px] text-foreground-muted leading-relaxed mb-10 max-w-sm font-sans">
+          <p className="text-[15px] md:text-[16px] text-foreground-muted leading-relaxed mb-8 md:mb-10 max-w-sm font-sans">
             Escribe un tema o sube un PDF. StudyFlow genera resúmenes, flashcards,
             quizzes y un tutor IA basados en tu contenido.
           </p>
@@ -75,15 +75,15 @@ export function HeroSection() {
         </div>
 
         {/* Right: feature cards grid 3x2 */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5 md:gap-3">
           {featureCards.map((card, i) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.number}
                 className={[
-                  "group relative p-5 rounded-[14px] border border-border bg-card",
-                  "flex flex-col justify-between min-h-[130px]",
+                  "group relative p-4 md:p-5 rounded-[14px] border border-border bg-card",
+                  "flex flex-col justify-between min-h-[110px] md:min-h-[130px]",
                   "hover:border-foreground-muted transition-all duration-200 ease-out",
                   "hover:-translate-y-0.5",
                   "animate-fade-in",

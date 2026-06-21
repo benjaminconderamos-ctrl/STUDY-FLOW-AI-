@@ -69,12 +69,12 @@ export function DemoSection() {
   }, [activeTab]);
 
   return (
-    <section className="px-6 py-20 border-t border-border">
+    <section className="px-4 sm:px-6 py-16 md:py-20 border-t border-border">
       <div className="max-w-6xl mx-auto">
         <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-foreground-muted mb-4 font-sans">
           Demo en vivo
         </p>
-        <h2 className="font-serif text-3xl md:text-4xl font-medium text-foreground mb-8 leading-tight">
+        <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-medium text-foreground mb-8 leading-tight">
           Sesión generada:{" "}
           <em className="not-italic text-foreground-muted">
             Las 3 leyes de Newton

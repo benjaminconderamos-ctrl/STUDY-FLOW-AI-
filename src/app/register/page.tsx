@@ -91,11 +91,11 @@ export default function RegisterPage() {
       </header>
 
       {/* Main */}
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
         <div className="w-full max-w-sm animate-fade-in-scale">
 
           {success ? (
-            <div className="bg-card border border-border rounded-[16px] p-8 text-center">
+            <div className="bg-card border border-border rounded-[16px] p-5 sm:p-8 text-center">
               <p className="font-serif text-xl font-medium text-foreground mb-2">
                 Revisa tu correo
               </p>
@@ -112,7 +112,7 @@ export default function RegisterPage() {
               </p>
             </div>
           ) : (
-            <div className="bg-card border border-border rounded-[16px] p-8">
+            <div className="bg-card border border-border rounded-[16px] p-5 sm:p-8">
               <div className="mb-7">
                 <h1 className="font-serif text-2xl font-medium text-foreground">
                   Crea tu cuenta

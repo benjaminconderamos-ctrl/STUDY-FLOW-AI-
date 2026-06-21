@@ -145,10 +145,11 @@ export function MathGraph({ graph }: MathGraphProps) {
 
       {/* Función(es) — LineChart */}
       {isFunctionGraph && hasValidData && (
-        <ResponsiveContainer width="100%" height={320}>
+        <div className="h-[260px] sm:h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={mergedData}
-            margin={{ top: 12, right: 20, left: 0, bottom: graph.xLabel ? 28 : 8 }}
+            margin={{ top: 12, right: 16, left: 0, bottom: graph.xLabel ? 28 : 8 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
 
@@ -171,8 +172,8 @@ export function MathGraph({ graph }: MathGraphProps) {
               type="number"
               domain={["dataMin", "dataMax"]}
               stroke="var(--foreground-muted)"
-              tick={{ fontSize: 11, fontFamily: "var(--font-inter)", fill: "var(--foreground-muted)" }}
-              tickCount={9}
+              tick={{ fontSize: 10, fontFamily: "var(--font-inter)", fill: "var(--foreground-muted)" }}
+              tickCount={7}
               label={
                 graph.xLabel
                   ? { value: graph.xLabel, position: "insideBottom", offset: -14, fontSize: 11, fill: "var(--foreground-muted)" }
@@ -236,12 +237,14 @@ export function MathGraph({ graph }: MathGraphProps) {
             })}
           </LineChart>
         </ResponsiveContainer>
+        </div>
       )}
 
       {/* Puntos dispersos */}
       {isScatterGraph && (
-        <ResponsiveContainer width="100%" height={320}>
-          <ScatterChart margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+        <div className="h-[260px] sm:h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <ReferenceLine x={0} stroke="var(--foreground-muted)" strokeWidth={1} strokeDasharray="4 3" />
             <ReferenceLine y={0} stroke="var(--foreground-muted)" strokeWidth={1} strokeDasharray="4 3" />
@@ -264,6 +267,7 @@ export function MathGraph({ graph }: MathGraphProps) {
             <Scatter data={graph.points} fill="var(--foreground)" fillOpacity={0.8} />
           </ScatterChart>
         </ResponsiveContainer>
+        </div>
       )}
 
       {/* Puntos calculados */}
