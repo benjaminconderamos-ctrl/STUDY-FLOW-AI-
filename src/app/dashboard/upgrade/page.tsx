@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -9,19 +9,18 @@ const PRICE_IDS: Record<string, string> = {
   max: process.env.STRIPE_MAX_PRICE_ID!,
 };
 
-export async function POST(req: NextRequest) {
+export default async function UpgradePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const { plan } = await searchParams;
+
+  if (!plan || !PRICE_IDS[plan]) redirect("/dashboard");
+
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  }
-
-  const { plan } = await req.json() as { plan?: string };
-
-  if (!plan || !PRICE_IDS[plan]) {
-    return NextResponse.json({ error: "Plan inválido" }, { status: 400 });
-  }
+  if (!user) redirect("/login");
 
   const { data: sub } = await supabase
     .from("subscriptions")
@@ -41,5 +40,5 @@ export async function POST(req: NextRequest) {
     subscription_data: { metadata: { user_id: user.id, plan } },
   });
 
-  return NextResponse.json({ url: session.url });
+  redirect(session.url!);
 }
