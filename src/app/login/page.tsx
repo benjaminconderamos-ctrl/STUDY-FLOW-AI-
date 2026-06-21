@@ -6,6 +6,7 @@ import Link from "next/link";
 import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { Button } from "@/components/ui/Button";
 import { HCaptchaField } from "@/components/auth/HCaptchaField";
+import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -62,9 +63,12 @@ export default function LoginPage() {
       <header className="px-6 h-14 flex items-center border-b border-border">
         <Link
           href="/"
-          className="text-[15px] font-serif font-medium text-foreground tracking-tight hover:opacity-80 transition-opacity duration-150"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-150"
         >
-          StudyFlow AI
+          <Logo size={26} />
+          <span className="text-[15px] font-serif font-medium text-foreground tracking-tight">
+            StudyFlow AI
+          </span>
         </Link>
       </header>
 

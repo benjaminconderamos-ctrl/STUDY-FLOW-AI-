@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { MobileNav } from "@/components/dashboard/MobileNav";
+import { Logo } from "@/components/ui/Logo";
 
 export default async function DashboardLayout({
   children,
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
         {/* Mobile header */}
         <header className="md:hidden flex items-center gap-3 px-4 h-14 border-b border-border bg-background flex-shrink-0">
           <MobileNav displayName={displayName} email={email} plan={plan} />
+          <Logo size={26} />
           <span className="text-[15px] font-serif font-medium text-foreground">
             StudyFlow AI
           </span>

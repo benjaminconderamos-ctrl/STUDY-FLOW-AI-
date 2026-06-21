@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   title: "StudyFlow AI — Estudia mejor con IA",
   description:
     "Crea sesiones de estudio con IA desde un tema o PDF. Genera resúmenes, flashcards, quizzes y apoyo personalizado para estudiar mejor. Subida de PDFs disponible en beta.",
+  icons: {
+    icon: "/logo-dark.png",
+    apple: "/logo-dark.png",
+  },
+  openGraph: {
+    images: ["/logo-dark.png"],
+  },
 };
 
 export default function RootLayout({

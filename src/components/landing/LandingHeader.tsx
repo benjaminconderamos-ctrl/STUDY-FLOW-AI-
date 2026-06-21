@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/ui/Logo";
 
 export function LandingHeader() {
   return (
@@ -8,10 +9,13 @@ export function LandingHeader() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-[15px] font-serif font-medium text-foreground tracking-tight hover:opacity-80 transition-opacity duration-150"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-150"
           aria-label="StudyFlow AI — inicio"
         >
-          StudyFlow AI
+          <Logo size={28} />
+          <span className="text-[15px] font-serif font-medium text-foreground tracking-tight">
+            StudyFlow AI
+          </span>
         </Link>
 
         {/* Desktop nav */}

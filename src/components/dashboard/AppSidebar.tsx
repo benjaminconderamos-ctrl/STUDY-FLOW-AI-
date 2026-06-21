@@ -13,6 +13,7 @@ import {
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
 import { Badge } from "@/components/ui/Badge";
+import { Logo } from "@/components/ui/Logo";
 import { SubjectsSidebar } from "@/components/dashboard/SubjectsSidebar";
 import { cn } from "@/lib/utils";
 
@@ -50,9 +51,12 @@ export function AppSidebar({ displayName, email, plan, onClose }: AppSidebarProp
         <Link
           href="/"
           onClick={onClose}
-          className="text-[15px] font-serif font-medium text-foreground tracking-tight hover:opacity-80 transition-opacity duration-150"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-150"
         >
-          StudyFlow AI
+          <Logo size={28} />
+          <span className="text-[15px] font-serif font-medium text-foreground tracking-tight">
+            StudyFlow AI
+          </span>
         </Link>
       </div>
 
