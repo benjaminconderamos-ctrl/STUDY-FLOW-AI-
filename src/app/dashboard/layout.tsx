@@ -13,11 +13,18 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, plan")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: subjects }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("name, plan")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("subjects")
+      .select("id, name")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   const displayName = profile?.name ?? user.email?.split("@")[0] ?? "Usuario";
   const plan = (profile?.plan ?? "free") as "free" | "pro" | "max";
@@ -27,14 +34,24 @@ export default async function DashboardLayout({
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar — desktop only */}
       <aside className="hidden md:block flex-shrink-0">
-        <AppSidebar displayName={displayName} email={email} plan={plan} />
+        <AppSidebar
+          displayName={displayName}
+          email={email}
+          plan={plan}
+          subjects={subjects ?? []}
+        />
       </aside>
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header */}
         <header className="md:hidden flex items-center gap-3 px-4 h-14 border-b border-border bg-background flex-shrink-0">
-          <MobileNav displayName={displayName} email={email} plan={plan} />
+          <MobileNav
+            displayName={displayName}
+            email={email}
+            plan={plan}
+            subjects={subjects ?? []}
+          />
           <Logo size={26} />
           <span className="text-[15px] font-serif font-medium text-foreground">
             StudyFlow AI

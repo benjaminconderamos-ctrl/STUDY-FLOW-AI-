@@ -1,13 +1,11 @@
-"use client";
-
-import { useState, useEffect, useMemo } from "react";
 import { Clock, BarChart2, Flame, Calendar } from "lucide-react";
+import { redirect } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { createClient } from "@/lib/supabase/client";
+import { createServerClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 
 type ActivityRow = {
@@ -20,6 +18,14 @@ type ActivityRow = {
   study_sessions: { title: string } | null;
 };
 
+type ProgressData = {
+  totalMinutes: number;
+  todayMinutes: number;
+  weekMinutes: number;
+  streak: number;
+  recentActivities: ActivityRow[];
+};
+
 const typeLabels: Record<string, string> = {
   summary: "Resumen",
   flashcards: "Tarjetas",
@@ -28,50 +34,71 @@ const typeLabels: Record<string, string> = {
 };
 
 function calcStreak(activities: ActivityRow[]): number {
-  const uniqueDates = [...new Set(activities.map((a) => a.date))].sort().reverse();
+  const uniqueDates = [...new Set(activities.map((activity) => activity.date))]
+    .sort()
+    .reverse();
   let count = 0;
   const check = new Date();
   check.setHours(0, 0, 0, 0);
+
   for (const date of uniqueDates) {
-    const d = new Date(date + "T00:00:00");
-    if (d.toDateString() === check.toDateString()) {
-      count++;
-      check.setDate(check.getDate() - 1);
-    } else {
-      break;
-    }
+    const activityDate = new Date(`${date}T00:00:00`);
+    if (activityDate.toDateString() !== check.toDateString()) break;
+    count++;
+    check.setDate(check.getDate() - 1);
   }
+
   return count;
 }
 
-export default function ProgressPage() {
-  const [activities, setActivities] = useState<ActivityRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+async function getProgressData(): Promise<ProgressData> {
+  const supabase = await createServerClient();
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    "get_study_progress"
+  );
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("study_activity")
-      .select("id, type, minutes_spent, date, created_at, session_id, study_sessions(title)")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setActivities((data as unknown as ActivityRow[]) ?? []);
-        setIsLoading(false);
-      });
-  }, []);
+  if (!rpcError && rpcData) {
+    return rpcData as ProgressData;
+  }
 
-  const { totalMinutes, todayMinutes, weekMinutes, streak } = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const weekAgo = new Date(new Date().setDate(new Date().getDate() - 7))
-      .toISOString()
-      .split("T")[0];
-    return {
-      totalMinutes: activities.reduce((s, a) => s + a.minutes_spent, 0),
-      todayMinutes: activities.filter((a) => a.date === today).reduce((s, a) => s + a.minutes_spent, 0),
-      weekMinutes: activities.filter((a) => a.date >= weekAgo).reduce((s, a) => s + a.minutes_spent, 0),
-      streak: calcStreak(activities),
-    };
-  }, [activities]);
+  const { data } = await supabase
+    .from("study_activity")
+    .select("id, type, minutes_spent, date, created_at, session_id, study_sessions(title)")
+    .order("created_at", { ascending: false });
+
+  const activities = (data as unknown as ActivityRow[] | null) ?? [];
+  const today = new Date().toISOString().split("T")[0];
+  const weekAgoDate = new Date();
+  weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+  const weekAgo = weekAgoDate.toISOString().split("T")[0];
+
+  return {
+    totalMinutes: activities.reduce((sum, activity) => sum + activity.minutes_spent, 0),
+    todayMinutes: activities
+      .filter((activity) => activity.date === today)
+      .reduce((sum, activity) => sum + activity.minutes_spent, 0),
+    weekMinutes: activities
+      .filter((activity) => activity.date >= weekAgo)
+      .reduce((sum, activity) => sum + activity.minutes_spent, 0),
+    streak: calcStreak(activities),
+    recentActivities: activities.slice(0, 10),
+  };
+}
+
+export default async function ProgressPage() {
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const {
+    totalMinutes,
+    todayMinutes,
+    weekMinutes,
+    streak,
+    recentActivities,
+  } = await getProgressData();
 
   const progressMetrics = [
     {
@@ -100,8 +127,6 @@ export default function ProgressPage() {
     },
   ];
 
-  const recentActivities = activities.slice(0, 10);
-
   return (
     <PageShell>
       <PageHeader
@@ -110,29 +135,25 @@ export default function ProgressPage() {
         subtitle="Tiempo dedicado, tu racha y actividad reciente."
       />
 
-      {/* Metrics */}
       <section
         aria-label="Métricas de progreso"
         className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10"
       >
-        {progressMetrics.map((m, i) => (
-          <MetricCard key={m.title} {...m} animationDelay={`${i * 40}ms`} />
+        {progressMetrics.map((metric, index) => (
+          <MetricCard
+            key={metric.title}
+            {...metric}
+            animationDelay={`${index * 40}ms`}
+          />
         ))}
       </section>
 
-      {/* Recent activity */}
       <section>
         <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-foreground-muted mb-4 font-sans">
           Actividad reciente
         </p>
 
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 bg-muted rounded-[10px] animate-pulse" />
-            ))}
-          </div>
-        ) : recentActivities.length === 0 ? (
+        {recentActivities.length === 0 ? (
           <EmptyState
             icon={Clock}
             title="Aún no hay tiempo de estudio"

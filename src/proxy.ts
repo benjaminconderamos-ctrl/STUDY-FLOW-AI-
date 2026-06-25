@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,19 +25,18 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = Boolean(data?.claims?.sub);
 
   const { pathname } = request.nextUrl;
 
   // Rutas del dashboard requieren sesión activa
-  if (pathname.startsWith("/dashboard") && !user) {
+  if (pathname.startsWith("/dashboard") && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Si ya tiene sesión, no mostrar login/register
-  if ((pathname === "/login" || pathname === "/register") && user) {
+  if ((pathname === "/login" || pathname === "/register") && isAuthenticated) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

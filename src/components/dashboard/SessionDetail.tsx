@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { Badge } from "@/components/ui/Badge";
@@ -25,6 +26,36 @@ import {
   HelpCircle,
   Pencil,
 } from "lucide-react";
+
+const LazyQuizTab = dynamic(
+  () =>
+    import("@/components/dashboard/session-tabs/QuizTab").then(
+      (mod) => mod.QuizTab
+    ),
+  {
+    loading: () => (
+      <div className="flex items-center gap-2 text-foreground-muted">
+        <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+        <span className="text-[13px] font-sans">Cargando quiz...</span>
+      </div>
+    ),
+  }
+);
+
+const LazyTutorTab = dynamic(
+  () =>
+    import("@/components/dashboard/session-tabs/TutorTab").then(
+      (mod) => mod.TutorTab
+    ),
+  {
+    loading: () => (
+      <div className="flex items-center gap-2 text-foreground-muted">
+        <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
+        <span className="text-[13px] font-sans">Cargando conversación...</span>
+      </div>
+    ),
+  }
+);
 
 const goalLabels: Record<string, string> = {
   understand: "Entender rápido",
@@ -272,8 +303,8 @@ export function SessionDetail({ session }: SessionDetailProps) {
       {/* Content */}
       {activeTab === "summary" && <SummaryTab session={session} onProgressUpdate={setSessionProgress} />}
       {activeTab === "flashcards" && <FlashcardsTab session={session} onProgressUpdate={setSessionProgress} />}
-      {activeTab === "quiz" && <QuizTab session={session} onProgressUpdate={setSessionProgress} />}
-      {activeTab === "tutor" && <TutorTab session={session} />}
+      {activeTab === "quiz" && <LazyQuizTab session={session} onProgressUpdate={setSessionProgress} />}
+      {activeTab === "tutor" && <LazyTutorTab session={session} />}
     </PageShell>
   );
 }
@@ -720,7 +751,8 @@ const WELCOME_MESSAGE = (title: string): ChatMessage => ({
   content: `Hola, soy tu tutor para "${title}". ¿Qué quieres entender mejor o tienes alguna duda?`,
 });
 
-function TutorTab({ session }: { session: StudySession }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LegacyTutorTab({ session }: { session: StudySession }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [input, setInput] = useState("");
@@ -945,7 +977,10 @@ type QuizQuestionRow = {
 
 const OPTION_LABELS = ["A", "B", "C", "D"];
 
-function QuizTab({
+// Kept temporarily as an exact reference implementation while the lazily loaded
+// module is validated against the existing behavior.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LegacyQuizTab({
   session,
   onProgressUpdate,
 }: {

@@ -12,8 +12,14 @@ interface Subject {
   name: string;
 }
 
-export function SubjectsSidebar({ onClose }: { onClose?: () => void }) {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+export function SubjectsSidebar({
+  initialSubjects,
+  onClose,
+}: {
+  initialSubjects: Subject[];
+  onClose?: () => void;
+}) {
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
   const [adding, setAdding] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -21,18 +27,6 @@ export function SubjectsSidebar({ onClose }: { onClose?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
   const supabase = createClient();
-
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase
-        .from("subjects")
-        .select("id, name")
-        .order("created_at", { ascending: true });
-      if (data) setSubjects(data);
-    }
-    load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (adding) inputRef.current?.focus();

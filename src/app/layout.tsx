@@ -11,13 +11,16 @@ const inter = Inter({
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  weight: ["400", "500"],
+  style: ["normal"],
   variable: "--font-cormorant",
   display: "swap",
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "StudyFlow AI — Estudia mejor con IA",
   description:
     "Crea sesiones de estudio con IA desde un tema o PDF. Genera resúmenes, flashcards, quizzes y apoyo personalizado para estudiar mejor. Subida de PDFs disponible en beta.",

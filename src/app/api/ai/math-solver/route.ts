@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   if (!user) return err("unauthorized", "No autenticado.", 401);
 
   // 6. Verificar cuota
-  const plan = await getUserPlan(user.id);
+  const plan = await getUserPlan(user.id, supabase);
   const limit = getUsageLimit(plan, ACTION);
 
   const { data: quotaResult, error: quotaError } = await supabase.rpc(

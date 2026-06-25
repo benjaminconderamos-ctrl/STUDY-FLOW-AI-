@@ -16,7 +16,7 @@ export function Logo({ size = 28, className }: LogoProps) {
         width={size}
         height={size}
         className="dark:hidden rounded-[6px] [mix-blend-mode:multiply]"
-        priority
+        loading="eager"
       />
       {/* Dark mode: white mark on black bg — screen blends black into dark background */}
       <Image
@@ -25,7 +25,7 @@ export function Logo({ size = 28, className }: LogoProps) {
         width={size}
         height={size}
         className="hidden dark:inline-block rounded-[6px] [mix-blend-mode:screen]"
-        priority
+        loading="eager"
       />
     </span>
   );

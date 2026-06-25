@@ -14,17 +14,18 @@ export default async function SettingsPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, plan")
-    .eq("id", user.id)
-    .single();
-
-  const { data: sub } = await supabase
-    .from("subscriptions")
-    .select("status, current_period_end, stripe_customer_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: sub }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("name, plan")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("subscriptions")
+      .select("status, current_period_end, stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   const displayName = profile?.name ?? user.email?.split("@")[0] ?? "Usuario";
   const plan = profile?.plan ?? "free";

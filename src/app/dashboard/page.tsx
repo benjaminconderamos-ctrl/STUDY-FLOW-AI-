@@ -41,11 +41,14 @@ export default async function DashboardPage() {
   let recentSessions: StudySession[] = [];
   let totalSessions = 0;
   try {
-    recentSessions = await getRecentStudySessions(3);
-    const { count } = await supabase
-      .from("study_sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
+    const [sessions, { count }] = await Promise.all([
+      getRecentStudySessions(3, supabase),
+      supabase
+        .from("study_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id),
+    ]);
+    recentSessions = sessions;
     totalSessions = count ?? 0;
   } catch {
     recentSessions = [];

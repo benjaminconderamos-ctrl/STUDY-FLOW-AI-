@@ -1,13 +1,11 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileText, Plus, Loader2 } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
+import { redirect } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { createClient } from "@/lib/supabase/client";
+import { createServerClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 
 interface DocRow {
@@ -18,22 +16,22 @@ interface DocRow {
   study_sessions: { id: string; title: string }[] | null;
 }
 
-export default function LibraryPage() {
-  const [docs, setDocs] = useState<DocRow[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function LibraryPage() {
+  const supabase = await createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("documents")
-      .select("id, name, size_bytes, created_at, study_sessions(id, title)")
-      .eq("type", "pdf")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setDocs((data as DocRow[]) ?? []);
-        setLoading(false);
-      });
-  }, []);
+  if (!user) redirect("/login");
+
+  const { data } = await supabase
+    .from("documents")
+    .select("id, name, size_bytes, created_at, study_sessions(id, title)")
+    .eq("user_id", user.id)
+    .eq("type", "pdf")
+    .order("created_at", { ascending: false });
+
+  const docs = (data as DocRow[] | null) ?? [];
 
   return (
     <PageShell>
@@ -51,12 +49,7 @@ export default function LibraryPage() {
         <Badge variant="muted">Beta</Badge>
       </div>
 
-      {loading ? (
-        <div className="flex items-center gap-2 text-foreground-muted py-8">
-          <Loader2 size={16} strokeWidth={1.5} className="animate-spin" />
-          <span className="text-[13px] font-sans">Cargando documentos...</span>
-        </div>
-      ) : docs.length === 0 ? (
+      {docs.length === 0 ? (
         <div className="max-w-lg">
           <div className="bg-card border border-dashed border-border rounded-[16px] px-8 py-14 flex flex-col items-center text-center">
             <div className="mb-4 p-4 rounded-full bg-muted">

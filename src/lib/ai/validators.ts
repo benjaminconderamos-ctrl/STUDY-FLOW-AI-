@@ -57,6 +57,7 @@ export function validateRequestBody(body: unknown): ValidationResult {
 /** Valida que los datos de sesión sean seguros antes de construir el prompt. */
 export function validateSessionData(session: {
   title: string;
+  study_topic?: string | null;
   subject: string | null;
   goal: string;
   level: string;
@@ -67,6 +68,10 @@ export function validateSessionData(session: {
 
   if (session.title.length > 300) {
     return { ok: false, code: "invalid_body", message: "El título de la sesión excede el límite permitido." };
+  }
+
+  if (session.study_topic && session.study_topic.length > 2000) {
+    return { ok: false, code: "invalid_body", message: "El tema de estudio excede el límite permitido." };
   }
 
   if (session.subject && session.subject.length > 100) {

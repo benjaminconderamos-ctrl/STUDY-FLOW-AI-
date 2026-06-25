@@ -1,9 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/Badge";
-import { MathGraph } from "@/components/dashboard/MathGraph";
 import type { MathSolverResult } from "@/types";
+
+const MathGraph = dynamic(
+  () => import("@/components/dashboard/MathGraph").then((mod) => mod.MathGraph),
+  {
+    loading: () => (
+      <div className="h-[330px] bg-muted rounded-[14px] animate-pulse" />
+    ),
+  }
+);
 
 const categoryLabels: Record<string, string> = {
   algebra: "Álgebra",

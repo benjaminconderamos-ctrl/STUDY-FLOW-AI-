@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   // 3. Obtener sesión y validar propiedad
   const { data: session, error: sessionError } = await supabase
     .from("study_sessions")
-    .select("id, title, subject, goal, level, user_id, progress, summary, source, document_id")
+    .select("id, title, study_topic, subject, goal, level, user_id, progress, summary, source, document_id")
     .eq("id", sessionId)
     .single();
 
@@ -51,26 +51,27 @@ export async function POST(request: Request) {
     return err("session_not_found", "Sesión no encontrada.", 404);
   }
 
-  // 4. Si es PDF, obtener texto del documento
-  let documentText: string | null = null;
-  if (session.source === "pdf" && session.document_id) {
-    const { data: doc } = await supabase
-      .from("documents")
-      .select("content_text")
-      .eq("id", session.document_id)
-      .eq("user_id", user.id)
-      .single();
-    documentText = doc?.content_text ?? null;
-  }
-
-  // 5. Validar datos de sesión
+  // 4. Validar datos de sesión
   const dataValidation = validateSessionData(session);
   if (!dataValidation.ok) {
     return err(dataValidation.code, dataValidation.message, 400);
   }
 
-  // 5. Verificar cuota atómicamente
-  const plan = await getUserPlan(user.id);
+  // 5. Obtener en paralelo el plan y, cuando aplique, el documento.
+  const [plan, documentResult] = await Promise.all([
+    getUserPlan(user.id, supabase),
+    session.source === "pdf" && session.document_id
+      ? supabase
+          .from("documents")
+          .select("content_text")
+          .eq("id", session.document_id)
+          .eq("user_id", user.id)
+          .single()
+      : Promise.resolve({ data: null }),
+  ]);
+  const documentText = documentResult.data?.content_text ?? null;
+
+  // 6. Verificar cuota atómicamente
   const limit = getUsageLimit(plan, ACTION);
 
   const { data: quotaResult, error: quotaError } = await supabase.rpc(

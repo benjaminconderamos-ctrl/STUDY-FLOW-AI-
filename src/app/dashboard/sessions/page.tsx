@@ -16,7 +16,7 @@ export default async function SessionsPage() {
 
   let sessions: StudySession[] = [];
   try {
-    sessions = await getStudySessions();
+    sessions = await getStudySessions(supabase);
   } catch {
     sessions = [];
   }

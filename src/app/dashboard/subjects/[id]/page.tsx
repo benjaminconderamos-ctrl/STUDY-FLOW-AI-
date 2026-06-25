@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { SessionsList } from "@/components/dashboard/SessionsList";
+import { STUDY_SESSION_FIELDS } from "@/lib/db/study-sessions";
 import type { StudySession } from "@/types";
 
 export default async function SubjectPage({
@@ -30,7 +31,7 @@ export default async function SubjectPage({
 
   const { data: sessions } = await supabase
     .from("study_sessions")
-    .select("*")
+    .select(STUDY_SESSION_FIELDS)
     .eq("subject_id", id)
     .order("created_at", { ascending: false });
 

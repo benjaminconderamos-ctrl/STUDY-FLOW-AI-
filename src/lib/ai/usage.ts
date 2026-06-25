@@ -3,13 +3,17 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 import { getUsageLimit, type AIAction } from "@/lib/ai/limits";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type AssertResult =
   | { allowed: true; used: number; limit: number; plan: string }
   | { allowed: false; code: string; message: string; used: number; limit: number; plan: string };
 
-export async function getUserPlan(userId: string): Promise<string> {
-  const supabase = await createServerClient();
+export async function getUserPlan(
+  userId: string,
+  client?: SupabaseClient
+): Promise<string> {
+  const supabase = client ?? (await createServerClient());
   const { data } = await supabase
     .from("profiles")
     .select("plan")
@@ -20,9 +24,10 @@ export async function getUserPlan(userId: string): Promise<string> {
 
 export async function getTodayUsageCount(
   userId: string,
-  action: AIAction
+  action: AIAction,
+  client?: SupabaseClient
 ): Promise<number> {
-  const supabase = await createServerClient();
+  const supabase = client ?? (await createServerClient());
   const dayStart = new Date();
   dayStart.setUTCHours(0, 0, 0, 0);
   const dayEnd = new Date();
@@ -44,9 +49,10 @@ export async function assertCanUseAI(
   userId: string,
   action: AIAction
 ): Promise<AssertResult> {
-  const plan = await getUserPlan(userId);
+  const supabase = await createServerClient();
+  const plan = await getUserPlan(userId, supabase);
   const limit = getUsageLimit(plan, action);
-  const used = await getTodayUsageCount(userId, action);
+  const used = await getTodayUsageCount(userId, action, supabase);
 
   if (used >= limit) {
     return {

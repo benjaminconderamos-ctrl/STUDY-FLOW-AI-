@@ -8,6 +8,7 @@ export interface StudySession {
   id: string;
   user_id: string;
   title: string;
+  study_topic?: string | null;
   subject: string | null;
   source: SourceType;
   level: StudyLevel;
@@ -19,6 +20,7 @@ export interface StudySession {
   created_at: string;
   updated_at: string;
   document_id?: string | null;
+  subject_id?: string | null;
 }
 
 export interface Document {

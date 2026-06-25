@@ -15,7 +15,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const session = await getStudySessionById(id);
+  const session = await getStudySessionById(id, supabase);
   if (!session) notFound();
 
   return <SessionDetail session={session} />;

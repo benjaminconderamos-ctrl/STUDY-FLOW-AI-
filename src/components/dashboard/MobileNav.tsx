@@ -9,9 +9,10 @@ interface MobileNavProps {
   displayName: string;
   email: string;
   plan: "free" | "pro" | "max";
+  subjects: { id: string; name: string }[];
 }
 
-export function MobileNav({ displayName, email, plan }: MobileNavProps) {
+export function MobileNav({ displayName, email, plan, subjects }: MobileNavProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -49,7 +50,13 @@ export function MobileNav({ displayName, email, plan }: MobileNavProps) {
               aria-modal="true"
               aria-label="Menú de navegación"
             >
-              <AppSidebar displayName={displayName} email={email} plan={plan} onClose={() => setOpen(false)} />
+              <AppSidebar
+                displayName={displayName}
+                email={email}
+                plan={plan}
+                subjects={subjects}
+                onClose={() => setOpen(false)}
+              />
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar menú"

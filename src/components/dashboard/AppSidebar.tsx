@@ -33,10 +33,11 @@ interface AppSidebarProps {
   displayName: string;
   email: string;
   plan: "free" | "pro" | "max";
+  subjects: { id: string; name: string }[];
   onClose?: () => void;
 }
 
-export function AppSidebar({ displayName, email, plan, onClose }: AppSidebarProps) {
+export function AppSidebar({ displayName, email, plan, subjects, onClose }: AppSidebarProps) {
   const pathname = usePathname();
 
   function isActive(item: (typeof navItems)[0]) {
@@ -129,7 +130,7 @@ export function AppSidebar({ displayName, email, plan, onClose }: AppSidebarProp
       </nav>
 
       {/* Materias */}
-      <SubjectsSidebar onClose={onClose} />
+      <SubjectsSidebar initialSubjects={subjects} onClose={onClose} />
 
       {/* User block + bottom actions */}
       <div className="px-3 pb-4 border-t border-border pt-3 flex-shrink-0 space-y-0.5">
