@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import HCaptcha from "@hcaptcha/react-hcaptcha";
 import { Button } from "@/components/ui/Button";
+import { HCaptchaField } from "@/components/auth/HCaptchaField";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
+  const captchaRef = useRef<HCaptcha>(null);
   const [email, setEmail] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -17,6 +21,10 @@ export default function ForgotPasswordPage() {
       setError("Introduce tu correo electrónico.");
       return;
     }
+    if (!captchaToken) {
+      setError("Completa la verificación de seguridad.");
+      return;
+    }
     setError("");
     setLoading(true);
 
@@ -25,12 +33,19 @@ export default function ForgotPasswordPage() {
 
     const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
+      captchaToken,
     });
 
+    captchaRef.current?.resetCaptcha();
+    setCaptchaToken(null);
     setLoading(false);
 
     if (authError) {
-      setError("Error al enviar el correo. Intenta de nuevo.");
+      setError(
+        authError.message.includes("captcha")
+          ? "Completa la verificación de seguridad."
+          : "Error al enviar el correo. Intenta de nuevo."
+      );
       return;
     }
 
@@ -93,6 +108,14 @@ export default function ForgotPasswordPage() {
                     />
                   </div>
 
+                  <div className="pt-1">
+                    <HCaptchaField
+                      ref={captchaRef}
+                      onVerify={(token) => setCaptchaToken(token)}
+                      onExpire={() => setCaptchaToken(null)}
+                    />
+                  </div>
+
                   {error && (
                     <p className="text-[12px] text-red-500 font-sans">{error}</p>
                   )}
@@ -102,7 +125,7 @@ export default function ForgotPasswordPage() {
                     className="w-full mt-2"
                     size="md"
                     loading={loading}
-                    disabled={loading}
+                    disabled={!captchaToken || loading}
                   >
                     Enviar instrucciones
                   </Button>
