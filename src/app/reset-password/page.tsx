@@ -1,17 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const token_hash = searchParams.get("token_hash");
+    const type = searchParams.get("type") as EmailOtpType | null;
+
+    if (!token_hash || !type) {
+      setVerifying(false);
+      return;
+    }
+
+    const supabase = createClient();
+    supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
+      if (error) {
+        setError("El enlace ha expirado o no es válido. Solicita uno nuevo.");
+      }
+      setVerifying(false);
+    });
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +59,7 @@ export default function ResetPasswordPage() {
 
     if (authError) {
       setError(
-        authError.message.includes("expired") || authError.message.includes("invalid")
+        authError.message.includes("expired") || authError.message.includes("invalid") || authError.message.includes("session")
           ? "El enlace ha expirado. Solicita uno nuevo."
           : "Error al actualizar la contraseña. Intenta de nuevo."
       );
@@ -62,6 +83,24 @@ export default function ResetPasswordPage() {
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm animate-fade-in-scale">
           <div className="bg-card border border-border rounded-[16px] p-8">
+            {verifying ? (
+              <p className="text-[14px] text-foreground-muted font-sans text-center py-4">
+                Verificando enlace...
+              </p>
+            ) : error && !password ? (
+              <div>
+                <h1 className="font-serif text-2xl font-medium text-foreground mb-3">
+                  Enlace inválido
+                </h1>
+                <p className="text-[13px] text-red-500 font-sans">{error}</p>
+                <Link
+                  href="/forgot-password"
+                  className="mt-4 inline-block text-[13px] text-foreground hover:underline underline-offset-2 font-sans"
+                >
+                  Solicitar nuevo enlace →
+                </Link>
+              </div>
+            ) : (
             <div className="mb-7">
               <h1 className="font-serif text-2xl font-medium text-foreground">
                 Nueva contraseña
@@ -122,6 +161,7 @@ export default function ResetPasswordPage() {
                 Guardar contraseña
               </Button>
             </form>
+            )}
           </div>
 
           <p className="mt-5 text-center text-[13px] text-foreground-muted font-sans">

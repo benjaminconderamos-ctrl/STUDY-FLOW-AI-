@@ -11,7 +11,14 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createServerClient();
 
-  // Email-based flows (recovery, magic link, email confirmation)
+  // Recovery flow: pass token to client so the browser establishes the session
+  if (token_hash && type === "recovery") {
+    return NextResponse.redirect(
+      `${origin}/reset-password?token_hash=${token_hash}&type=${type}`
+    );
+  }
+
+  // Other email-based flows (magic link, email confirmation)
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
     if (!error) {
