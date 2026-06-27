@@ -210,7 +210,6 @@ create policy "Usuarios ven sus propios eventos de uso"
   on public.ai_usage_events for select using (auth.uid() = user_id);
 create policy "Usuarios insertan sus propios eventos de uso"
   on public.ai_usage_events for insert with check (auth.uid() = user_id);
-
 create index if not exists ai_usage_events_user_action_created_idx
   on public.ai_usage_events (user_id, action, created_at desc);
 
@@ -534,3 +533,7 @@ begin
   return jsonb_build_object('allowed', true, 'used', v_count, 'limit', p_limit, 'event_id', v_id::text);
 end;
 $$;
+
+revoke all on function public.try_consume_ai_quota(uuid, uuid, text, int) from public;
+revoke all on function public.try_consume_ai_quota(uuid, uuid, text, int) from anon;
+grant execute on function public.try_consume_ai_quota(uuid, uuid, text, int) to authenticated;

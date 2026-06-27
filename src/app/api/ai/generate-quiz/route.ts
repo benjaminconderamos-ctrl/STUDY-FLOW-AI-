@@ -7,9 +7,45 @@ import { createServerClient } from "@/lib/supabase/server";
 import { buildQuizPrompt } from "@/lib/ai/prompts";
 import { AI_ACTIONS, getUsageLimit } from "@/lib/ai/limits";
 import { validateRequestBody, validateSessionData, QuizArraySchema } from "@/lib/ai/validators";
-import { getUserPlan } from "@/lib/ai/usage";
+import { getUserPlan, updateAiEvent } from "@/lib/ai/usage";
 
 const ACTION = AI_ACTIONS.GENERATE_QUIZ;
+
+const QUIZ_RESPONSE_FORMAT = {
+  type: "json_schema" as const,
+  json_schema: {
+    name: "quiz_response",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        questions: {
+          type: "array",
+          minItems: 1,
+          maxItems: 10,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              question: { type: "string" },
+              options: {
+                type: "array",
+                minItems: 4,
+                maxItems: 4,
+                items: { type: "string" },
+              },
+              correctIndex: { type: "integer", minimum: 0, maximum: 3 },
+              explanation: { type: "string" },
+            },
+            required: ["question", "options", "correctIndex", "explanation"],
+          },
+        },
+      },
+      required: ["questions"],
+    },
+  },
+};
 
 function err(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
@@ -103,12 +139,7 @@ export async function POST(request: Request) {
 
   // 6. Verificar OpenAI configurado
   if (!process.env.OPENAI_API_KEY) {
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", error_message: "OPENAI_API_KEY no configurada." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", errorMessage: "OPENAI_API_KEY no configurada." });
     return err("internal_error", "El servicio de IA no está disponible.", 503);
   }
 
@@ -120,6 +151,7 @@ export async function POST(request: Request) {
       model: "gpt-4o-mini",
       temperature: 0.7,
       max_tokens: 1200,
+      response_format: QUIZ_RESPONSE_FORMAT,
       messages: [
         {
           role: "system",
@@ -135,12 +167,7 @@ export async function POST(request: Request) {
 
     const raw = completion.choices[0]?.message?.content?.trim();
     if (!raw) {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "Respuesta vacía de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Respuesta vacía de OpenAI." });
       return err("internal_error", "No se pudo generar el quiz. Intenta de nuevo.", 500);
     }
 
@@ -149,24 +176,22 @@ export async function POST(request: Request) {
     let questions: Array<{ question: string; options: string[]; correctIndex: number; explanation?: string }>;
     try {
       const parsed = JSON.parse(cleaned);
-      const result = QuizArraySchema.safeParse(parsed);
-      if (!result.success) throw new Error("Schema inválido");
+      const candidate = Array.isArray(parsed) ? parsed : parsed?.questions;
+      const result = QuizArraySchema.safeParse(candidate);
+      if (!result.success) {
+        console.error("[generate-quiz] invalid OpenAI JSON", result.error.flatten());
+        throw new Error("Schema inválido");
+      }
       questions = result.data;
     } catch {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "JSON inválido de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "JSON inválido de OpenAI." });
       return err("internal_error", "No se pudieron procesar las preguntas. Intenta de nuevo.", 500);
     }
 
     const usage = completion.usage;
 
-    // 8. Borrar preguntas existentes e insertar nuevas
+    // 8. Insertar nuevas preguntas y luego borrar las antiguas (orden seguro: evita pérdida si el insert falla)
     const newProgress = Math.max(session.progress ?? 0, 100);
-    await supabase.from("quiz_questions").delete().eq("session_id", sessionId);
 
     const { data: insertedQuestions, error: insertError } = await supabase
       .from("quiz_questions")
@@ -183,14 +208,17 @@ export async function POST(request: Request) {
       .select("id, session_id, question, options, correct_index, explanation, order");
 
     if (insertError) {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error al guardar preguntas." })
-          .eq("id", eventId);
-      }
+      console.error("[generate-quiz] insert error", insertError);
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error al guardar preguntas." });
       return err("internal_error", "Error al guardar las preguntas.", 500);
     }
+
+    const newIds = insertedQuestions!.map((q) => q.id);
+    await supabase
+      .from("quiz_questions")
+      .delete()
+      .eq("session_id", sessionId)
+      .not("id", "in", `(${newIds.join(",")})`);
 
     await supabase
       .from("study_sessions")
@@ -200,27 +228,19 @@ export async function POST(request: Request) {
 
     // 9. Actualizar evento a éxito
     if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({
-          status: "success",
-          model: "gpt-4o-mini",
-          prompt_tokens: usage?.prompt_tokens ?? 0,
-          completion_tokens: usage?.completion_tokens ?? 0,
-          total_tokens: usage?.total_tokens ?? 0,
-        })
-        .eq("id", eventId);
+      await updateAiEvent(eventId, {
+        status: "success",
+        model: "gpt-4o-mini",
+        promptTokens: usage?.prompt_tokens ?? 0,
+        completionTokens: usage?.completion_tokens ?? 0,
+        totalTokens: usage?.total_tokens ?? 0,
+      });
     }
 
     return NextResponse.json({ questions: insertedQuestions, progress: newProgress });
   } catch (error) {
     console.error("[generate-quiz]", error);
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error interno al llamar OpenAI." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error interno al llamar OpenAI." });
     return err("internal_error", "Error interno del servidor.", 500);
   }
 }

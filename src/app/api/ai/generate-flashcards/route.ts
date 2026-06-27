@@ -7,9 +7,38 @@ import { createServerClient } from "@/lib/supabase/server";
 import { buildFlashcardsPrompt } from "@/lib/ai/prompts";
 import { AI_ACTIONS, getUsageLimit } from "@/lib/ai/limits";
 import { validateRequestBody, validateSessionData, FlashcardsArraySchema } from "@/lib/ai/validators";
-import { getUserPlan } from "@/lib/ai/usage";
+import { getUserPlan, updateAiEvent } from "@/lib/ai/usage";
 
 const ACTION = AI_ACTIONS.GENERATE_FLASHCARDS;
+
+const FLASHCARDS_RESPONSE_FORMAT = {
+  type: "json_schema" as const,
+  json_schema: {
+    name: "flashcards_response",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        flashcards: {
+          type: "array",
+          minItems: 1,
+          maxItems: 20,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              question: { type: "string" },
+              answer: { type: "string" },
+            },
+            required: ["question", "answer"],
+          },
+        },
+      },
+      required: ["flashcards"],
+    },
+  },
+};
 
 function err(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
@@ -103,12 +132,7 @@ export async function POST(request: Request) {
 
   // 6. Verificar OpenAI configurado
   if (!process.env.OPENAI_API_KEY) {
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", error_message: "OPENAI_API_KEY no configurada." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", errorMessage: "OPENAI_API_KEY no configurada." });
     return err("internal_error", "El servicio de IA no está disponible.", 503);
   }
 
@@ -120,6 +144,7 @@ export async function POST(request: Request) {
       model: "gpt-4o-mini",
       temperature: 0.7,
       max_tokens: 1200,
+      response_format: FLASHCARDS_RESPONSE_FORMAT,
       messages: [
         {
           role: "system",
@@ -135,12 +160,7 @@ export async function POST(request: Request) {
 
     const raw = completion.choices[0]?.message?.content?.trim();
     if (!raw) {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "Respuesta vacía de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Respuesta vacía de OpenAI." });
       return err("internal_error", "No se pudieron generar las tarjetas. Intenta de nuevo.", 500);
     }
 
@@ -149,24 +169,22 @@ export async function POST(request: Request) {
     let cards: Array<{ question: string; answer: string }>;
     try {
       const parsed = JSON.parse(cleaned);
-      const result = FlashcardsArraySchema.safeParse(parsed);
-      if (!result.success) throw new Error("Schema inválido");
+      const candidate = Array.isArray(parsed) ? parsed : parsed?.flashcards;
+      const result = FlashcardsArraySchema.safeParse(candidate);
+      if (!result.success) {
+        console.error("[generate-flashcards] invalid OpenAI JSON", result.error.flatten());
+        throw new Error("Schema inválido");
+      }
       cards = result.data;
     } catch {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "JSON inválido de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "JSON inválido de OpenAI." });
       return err("internal_error", "No se pudieron procesar las tarjetas. Intenta de nuevo.", 500);
     }
 
     const usage = completion.usage;
 
-    // 8. Borrar flashcards existentes e insertar nuevas, actualizar progreso
+    // 8. Insertar nuevas flashcards y luego borrar las antiguas (orden seguro: evita pérdida si el insert falla)
     const newProgress = Math.max(session.progress ?? 0, 66);
-    await supabase.from("flashcards").delete().eq("session_id", sessionId);
 
     const { data: insertedCards, error: insertError } = await supabase
       .from("flashcards")
@@ -181,14 +199,17 @@ export async function POST(request: Request) {
       .select("id, session_id, question, answer, order");
 
     if (insertError) {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error al guardar tarjetas." })
-          .eq("id", eventId);
-      }
+      console.error("[generate-flashcards] insert error", insertError);
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error al guardar tarjetas." });
       return err("internal_error", "Error al guardar las tarjetas.", 500);
     }
+
+    const newIds = insertedCards!.map((c) => c.id);
+    await supabase
+      .from("flashcards")
+      .delete()
+      .eq("session_id", sessionId)
+      .not("id", "in", `(${newIds.join(",")})`);
 
     await supabase
       .from("study_sessions")
@@ -198,27 +219,19 @@ export async function POST(request: Request) {
 
     // 9. Actualizar evento a éxito
     if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({
-          status: "success",
-          model: "gpt-4o-mini",
-          prompt_tokens: usage?.prompt_tokens ?? 0,
-          completion_tokens: usage?.completion_tokens ?? 0,
-          total_tokens: usage?.total_tokens ?? 0,
-        })
-        .eq("id", eventId);
+      await updateAiEvent(eventId, {
+        status: "success",
+        model: "gpt-4o-mini",
+        promptTokens: usage?.prompt_tokens ?? 0,
+        completionTokens: usage?.completion_tokens ?? 0,
+        totalTokens: usage?.total_tokens ?? 0,
+      });
     }
 
     return NextResponse.json({ flashcards: insertedCards, progress: newProgress });
   } catch (error) {
     console.error("[generate-flashcards]", error);
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error interno al llamar OpenAI." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error interno al llamar OpenAI." });
     return err("internal_error", "Error interno del servidor.", 500);
   }
 }

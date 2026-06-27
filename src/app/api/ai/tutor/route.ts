@@ -5,7 +5,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { tutorSystemPrompt } from "@/lib/ai/prompts";
 import { AI_ACTIONS, getUsageLimit } from "@/lib/ai/limits";
-import { getUserPlan } from "@/lib/ai/usage";
+import { getUserPlan, updateAiEvent } from "@/lib/ai/usage";
 import OpenAI from "openai";
 
 const ACTION = AI_ACTIONS.TUTOR_MESSAGE;
@@ -126,12 +126,7 @@ export async function POST(request: Request) {
 
   // 6. Verificar OpenAI configurado
   if (!process.env.OPENAI_API_KEY) {
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", error_message: "OPENAI_API_KEY no configurada." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", errorMessage: "OPENAI_API_KEY no configurada." });
     return errResponse("El servicio de IA no está disponible.", 503);
   }
 
@@ -177,25 +172,17 @@ export async function POST(request: Request) {
           }
           // Actualizar evento con tokens antes de cerrar
           if (eventId) {
-            await supabase
-              .from("ai_usage_events")
-              .update({
-                status: "success",
-                model: "gpt-4o-mini",
-                prompt_tokens: usage?.prompt_tokens ?? 0,
-                completion_tokens: usage?.completion_tokens ?? 0,
-                total_tokens: usage?.total_tokens ?? 0,
-              })
-              .eq("id", eventId);
+            await updateAiEvent(eventId, {
+              status: "success",
+              model: "gpt-4o-mini",
+              promptTokens: usage?.prompt_tokens ?? 0,
+              completionTokens: usage?.completion_tokens ?? 0,
+              totalTokens: usage?.total_tokens ?? 0,
+            });
           }
         } catch (streamError) {
           console.error("[tutor] stream error", streamError);
-          if (eventId) {
-            await supabase
-              .from("ai_usage_events")
-              .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error durante el streaming." })
-              .eq("id", eventId);
-          }
+          if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error durante el streaming." });
         } finally {
           controller.close();
         }
@@ -207,12 +194,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[tutor]", error);
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error interno al llamar OpenAI." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error interno al llamar OpenAI." });
     return errResponse("Error interno del servidor.", 500);
   }
 }

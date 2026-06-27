@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function ResetPasswordPage() {
     const type = searchParams.get("type") as EmailOtpType | null;
 
     if (!token_hash || !type) {
+      setError("El enlace ha expirado o no es válido. Solicita uno nuevo.");
       setVerifying(false);
       return;
     }
@@ -29,10 +31,13 @@ export default function ResetPasswordPage() {
     supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
       if (error) {
         setError("El enlace ha expirado o no es válido. Solicita uno nuevo.");
+      } else {
+        setSessionReady(true);
       }
       setVerifying(false);
     });
-  }, [searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,7 +92,7 @@ export default function ResetPasswordPage() {
               <p className="text-[14px] text-foreground-muted font-sans text-center py-4">
                 Verificando enlace...
               </p>
-            ) : error && !password ? (
+            ) : !sessionReady ? (
               <div>
                 <h1 className="font-serif text-2xl font-medium text-foreground mb-3">
                   Enlace inválido
@@ -101,6 +106,7 @@ export default function ResetPasswordPage() {
                 </Link>
               </div>
             ) : (
+            <>
             <div className="mb-7">
               <h1 className="font-serif text-2xl font-medium text-foreground">
                 Nueva contraseña
@@ -161,6 +167,7 @@ export default function ResetPasswordPage() {
                 Guardar contraseña
               </Button>
             </form>
+            </>
             )}
           </div>
 
@@ -175,5 +182,13 @@ export default function ResetPasswordPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 // Funciones server-side para control de uso de IA.
 // Solo llamar desde Route Handlers o Server Actions, nunca desde Client Components.
 
-import { createServerClient } from "@/lib/supabase/server";
+import { createServerClient, createAdminClient } from "@/lib/supabase/server";
 import { getUsageLimit, type AIAction } from "@/lib/ai/limits";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -93,6 +93,31 @@ export async function recordAIUsageEvent(input: RecordEventInput): Promise<void>
     total_tokens: input.totalTokens ?? 0,
     error_message: input.errorMessage ?? null,
   });
+}
+
+export async function updateAiEvent(
+  eventId: string,
+  fields: {
+    status: "success" | "failed";
+    model?: string;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    errorMessage?: string;
+  }
+): Promise<void> {
+  const admin = createAdminClient();
+  await admin
+    .from("ai_usage_events")
+    .update({
+      status: fields.status,
+      ...(fields.model !== undefined && { model: fields.model }),
+      ...(fields.promptTokens !== undefined && { prompt_tokens: fields.promptTokens }),
+      ...(fields.completionTokens !== undefined && { completion_tokens: fields.completionTokens }),
+      ...(fields.totalTokens !== undefined && { total_tokens: fields.totalTokens }),
+      ...(fields.errorMessage !== undefined && { error_message: fields.errorMessage }),
+    })
+    .eq("id", eventId);
 }
 
 function actionLabel(action: AIAction): string {

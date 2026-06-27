@@ -8,7 +8,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { buildSummaryPrompt } from "@/lib/ai/prompts";
 import { AI_ACTIONS, getUsageLimit } from "@/lib/ai/limits";
 import { validateRequestBody, validateSessionData } from "@/lib/ai/validators";
-import { getUserPlan } from "@/lib/ai/usage";
+import { getUserPlan, updateAiEvent } from "@/lib/ai/usage";
 
 const ACTION = AI_ACTIONS.GENERATE_SUMMARY;
 
@@ -104,12 +104,7 @@ export async function POST(request: Request) {
 
   // 7. Verificar que OpenAI está configurado
   if (!process.env.OPENAI_API_KEY) {
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", error_message: "OPENAI_API_KEY no configurada." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", errorMessage: "OPENAI_API_KEY no configurada." });
     return err("internal_error", "El servicio de IA no está disponible.", 503);
   }
 
@@ -136,12 +131,7 @@ export async function POST(request: Request) {
 
     const summary = completion.choices[0]?.message?.content?.trim();
     if (!summary) {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "Respuesta vacía de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Respuesta vacía de OpenAI." });
       return err("internal_error", "No se pudo generar el resumen. Intenta de nuevo.", 500);
     }
 
@@ -157,27 +147,19 @@ export async function POST(request: Request) {
 
     // 9. Actualizar evento a éxito con métricas de tokens
     if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({
-          status: "success",
-          model: "gpt-4o-mini",
-          prompt_tokens: usage?.prompt_tokens ?? 0,
-          completion_tokens: usage?.completion_tokens ?? 0,
-          total_tokens: usage?.total_tokens ?? 0,
-        })
-        .eq("id", eventId);
+      await updateAiEvent(eventId, {
+        status: "success",
+        model: "gpt-4o-mini",
+        promptTokens: usage?.prompt_tokens ?? 0,
+        completionTokens: usage?.completion_tokens ?? 0,
+        totalTokens: usage?.total_tokens ?? 0,
+      });
     }
 
     return NextResponse.json({ summary, progress: newProgress });
   } catch (error) {
     console.error("[generate-summary]", error);
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error interno al llamar OpenAI." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error interno al llamar OpenAI." });
     return err("internal_error", "Error interno del servidor.", 500);
   }
 }

@@ -6,7 +6,7 @@ import OpenAI from "openai";
 import { createServerClient } from "@/lib/supabase/server";
 import { buildMathSolverPrompt } from "@/lib/ai/prompts";
 import { AI_ACTIONS, getUsageLimit } from "@/lib/ai/limits";
-import { getUserPlan } from "@/lib/ai/usage";
+import { getUserPlan, updateAiEvent } from "@/lib/ai/usage";
 import type { MathSolverResult } from "@/types";
 
 const ACTION = AI_ACTIONS.MATH_SOLVER;
@@ -107,12 +107,7 @@ export async function POST(request: Request) {
 
   // 7. Verificar OpenAI configurado
   if (!process.env.OPENAI_API_KEY) {
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", error_message: "OPENAI_API_KEY no configurada." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", errorMessage: "OPENAI_API_KEY no configurada." });
     return err("internal_error", "El servicio de IA no está disponible.", 503);
   }
 
@@ -139,12 +134,7 @@ export async function POST(request: Request) {
 
     const raw = completion.choices[0]?.message?.content?.trim();
     if (!raw) {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "Respuesta vacía de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Respuesta vacía de OpenAI." });
       return err("internal_error", "No se pudo resolver el problema. Intenta de nuevo.", 500);
     }
 
@@ -157,12 +147,7 @@ export async function POST(request: Request) {
         throw new Error("Estructura inválida");
       }
     } catch {
-      if (eventId) {
-        await supabase
-          .from("ai_usage_events")
-          .update({ status: "failed", model: "gpt-4o-mini", error_message: "JSON inválido de OpenAI." })
-          .eq("id", eventId);
-      }
+      if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "JSON inválido de OpenAI." });
       return err("invalid_ai_response", "No se pudo procesar la respuesta. Intenta de nuevo.", 500);
     }
 
@@ -194,16 +179,13 @@ export async function POST(request: Request) {
 
     // 11. Actualizar evento de uso a éxito
     if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({
-          status: "success",
-          model: "gpt-4o-mini",
-          prompt_tokens: usage?.prompt_tokens ?? 0,
-          completion_tokens: usage?.completion_tokens ?? 0,
-          total_tokens: usage?.total_tokens ?? 0,
-        })
-        .eq("id", eventId);
+      await updateAiEvent(eventId, {
+        status: "success",
+        model: "gpt-4o-mini",
+        promptTokens: usage?.prompt_tokens ?? 0,
+        completionTokens: usage?.completion_tokens ?? 0,
+        totalTokens: usage?.total_tokens ?? 0,
+      });
     }
 
     return NextResponse.json({
@@ -212,12 +194,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[math-solver]", error);
-    if (eventId) {
-      await supabase
-        .from("ai_usage_events")
-        .update({ status: "failed", model: "gpt-4o-mini", error_message: "Error interno al llamar OpenAI." })
-        .eq("id", eventId);
-    }
+    if (eventId) await updateAiEvent(eventId, { status: "failed", model: "gpt-4o-mini", errorMessage: "Error interno al llamar OpenAI." });
     return err("internal_error", "Error interno del servidor.", 500);
   }
 }
