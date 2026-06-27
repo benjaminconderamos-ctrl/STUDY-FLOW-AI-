@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
+import { ReportBugButton } from "@/components/dashboard/ReportBugButton";
 import { Badge } from "@/components/ui/Badge";
 import { Logo } from "@/components/ui/Logo";
 import { SubjectsSidebar } from "@/components/dashboard/SubjectsSidebar";
@@ -146,6 +147,7 @@ export function AppSidebar({ displayName, email, plan, subjects, onClose }: AppS
           <p className="text-[11px] text-foreground-muted font-sans truncate">{email}</p>
         </div>
         <ThemeToggle />
+        <ReportBugButton email={email} displayName={displayName} plan={plan} />
         <LogoutButton />
       </div>
     </div>

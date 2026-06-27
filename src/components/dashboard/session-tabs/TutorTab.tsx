@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageCircle, Send } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/client";
 import type { StudySession } from "@/types";
 
@@ -181,11 +183,44 @@ export function TutorTab({ session }: { session: StudySession }) {
                   : "bg-card border border-border text-foreground"
               }`}
             >
-              {message.content || (
+              {!message.content ? (
                 <span className="flex items-center gap-1.5 text-foreground-muted">
                   <Loader2 size={12} strokeWidth={1.5} className="animate-spin" />
                   <span className="text-[13px]">Escribiendo...</span>
                 </span>
+              ) : message.role === "assistant" ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    em: ({ children }) => <em className="italic">{children}</em>,
+                    h1: ({ children }) => <h1 className="font-serif text-lg font-semibold mt-3 mb-1">{children}</h1>,
+                    h2: ({ children }) => <h2 className="font-serif text-base font-semibold mt-3 mb-1">{children}</h2>,
+                    h3: ({ children }) => <h3 className="font-serif text-[15px] font-semibold mt-2 mb-1">{children}</h3>,
+                    ul: ({ children }) => <ul className="list-disc list-outside pl-4 space-y-0.5 my-1.5">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-outside pl-4 space-y-0.5 my-1.5">{children}</ol>,
+                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                    code: (props) => {
+                      const { className, children } = props as { className?: string; children?: React.ReactNode };
+                      const isBlock = !!className;
+                      return isBlock ? (
+                        <pre className="bg-muted rounded-[8px] p-3 my-2 overflow-x-auto">
+                          <code className="text-[12px] font-mono">{children}</code>
+                        </pre>
+                      ) : (
+                        <code className="bg-muted text-[12px] px-1.5 py-0.5 rounded font-mono">{children}</code>
+                      );
+                    },
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-2 border-border pl-3 my-2 text-foreground-muted italic">{children}</blockquote>
+                    ),
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              ) : (
+                message.content
               )}
             </div>
           </div>
